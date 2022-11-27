@@ -103,7 +103,7 @@ class SimpleSwitch(app_manager.RyuApp):
 
         # install a flow to avoid packet_in next time
         # caso nao seja um flood, verifica o switch e a saida para adicionar o flow
-        # faz com que se crie uma fila de pacotes, a partir do qual podemos controlar a banda
+        # a fila cria uma regra de saída 
         if out_port != ofp.OFPP_FLOOD:
             # se o switch eh o 1 e a porta de saida eh 1
             if dpid == 1 and out_port == 1:

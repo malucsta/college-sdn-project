@@ -19,19 +19,15 @@ class SimpleSwitch(app_manager.RyuApp):
     _CONTEXTS = {'wsgi': WSGIApplication}
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
-    # funcao de inicializacao
     def __init__(self, *args, **kwargs):
         super(SimpleSwitch, self).__init__(*args, **kwargs)
         wsgi = kwargs['wsgi']
-        #registrando o controller
         wsgi.register(SimpleSwitchController,
                       {myapp_name: self})
 
-        # aprende o endereco mac de cada porta em cada switch
         # learn mac addresses on each port of each switch
         self.mac_to_port = {}
 
-    # adiciona um flow de conexao
     def add_flow(self, datapath, match, actions, priority=1000, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -47,7 +43,6 @@ class SimpleSwitch(app_manager.RyuApp):
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
 
-    #limpeza dos flows quando o switch se conecta
     def delete_flow(self, datapath):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -87,45 +82,41 @@ class SimpleSwitch(app_manager.RyuApp):
         dpid = dp.id
         self.mac_to_port.setdefault(dpid, {})
 
-        # aprende o endereco mac para evitar floodar na proxima vez
-        # cria uma especie de tabela com os enderecos
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
 
-        # se o endereco ja eh conhecido, direciona para ele
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
-        #caso nao, flooda para todos. O que responder eh o destinatario
         else:
             out_port = ofp.OFPP_FLOOD
-
+	
+	print('Out port --', out_port)
+        
         actions = [ofp_parser.OFPActionOutput(out_port)]
 
         # install a flow to avoid packet_in next time
-        # caso nao seja um flood, verifica o switch e a saida para adicionar o flow
-        # faz com que se crie uma fila de pacotes, a partir do qual podemos controlar a banda
         if out_port != ofp.OFPP_FLOOD:
-            # se o switch eh o 1 e a porta de saida eh 1
             if dpid == 1 and out_port == 1:
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=1))
-            # se o switch eh o 1 e a porta de saida eh 2
             elif dpid == 1 and out_port == 2:
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=2))
-            # se o switch eh o 2 e a porta de saida eh 1
             elif dpid == 2 and out_port == 1:
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=3))
-            # se o switch eh o 2 e a porta de saida eh 2
             elif dpid == 2 and out_port == 2:
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=4))
 
             match = ofp_parser.OFPMatch(in_port=in_port, eth_dst=dst)
             # verify if we have a valid buffer_id, if yes avoid to send both
             # flow_mod & packet_out
+            print('Destino', dst)
+            
             if msg.buffer_id != ofp.OFP_NO_BUFFER:
-                self.add_flow(dp, match, actions, buffer_id=msg.buffer_id)
+                if (dst != '82:23:e0:b9:6c:69' and src == 'b6:74:07:a7:21:cd'): 
+                    self.add_flow(dp, match, actions, buffer_id=msg.buffer_id)
                 return
             else:
-                self.add_flow(dp, match, actions)
+                if (dst != '82:23:e0:b9:6c:69' and src == 'b6:74:07:a7:21:cd'): 
+                    self.add_flow(dp, match, actions)
 
         data = None
         if msg.buffer_id == ofp.OFP_NO_BUFFER:
@@ -134,7 +125,8 @@ class SimpleSwitch(app_manager.RyuApp):
         out = ofp_parser.OFPPacketOut(
             datapath=dp, buffer_id=msg.buffer_id, in_port=in_port,
             actions=actions, data = data)
-        dp.send_msg(out)
+        if (dst != '82:23:e0:b9:6c:69'):    
+            dp.send_msg(out)
 
 class SimpleSwitchController(ControllerBase):
 
@@ -142,7 +134,6 @@ class SimpleSwitchController(ControllerBase):
         super(SimpleSwitchController, self).__init__(req, link, data, **config)
         self.simple_switch_app = data[myapp_name]
 
-    # rota get que retorna a mactable
     @route(myapp_name, '/simpleswitch/mactable/{dpid}', methods=['GET'])
     def list_mac_table(self, req, **kwargs):
         dpid = dpid_lib.str_to_dpid(kwargs.get('dpid'))

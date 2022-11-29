@@ -90,7 +90,7 @@ class SimpleSwitch(app_manager.RyuApp):
         else:
             out_port = ofp.OFPP_FLOOD
 	
-	print('Out port --', out_port)
+        print('Out port --', out_port)
         
         actions = [ofp_parser.OFPActionOutput(out_port)]
 

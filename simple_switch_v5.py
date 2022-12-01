@@ -73,6 +73,9 @@ class SimpleSwitch(app_manager.RyuApp):
         ofp_parser = dp.ofproto_parser
         in_port = msg.match['in_port']
 
+        print('==========================================')
+        print('In port --', in_port)
+
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
@@ -91,6 +94,8 @@ class SimpleSwitch(app_manager.RyuApp):
             out_port = ofp.OFPP_FLOOD
 	
         print('Out port --', out_port)
+        print('Dpid --', dpid)
+        #print('Mapeamento --', self.mac_to_port[dpid][dst])
         
         actions = [ofp_parser.OFPActionOutput(out_port)]
 
@@ -108,14 +113,15 @@ class SimpleSwitch(app_manager.RyuApp):
             match = ofp_parser.OFPMatch(in_port=in_port, eth_dst=dst)
             # verify if we have a valid buffer_id, if yes avoid to send both
             # flow_mod & packet_out
-            print('Destino', dst)
+            print('Origem  ' + src)
+            print('Destino  ' + dst )
             
             if msg.buffer_id != ofp.OFP_NO_BUFFER:
-                if (dst != '82:23:e0:b9:6c:69' and src == 'b6:74:07:a7:21:cd'): 
+                if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != '4a:97:51:e6:23:96' and src == 'e6:16:63:a4:83:f1'): 
                     self.add_flow(dp, match, actions, buffer_id=msg.buffer_id)
                 return
             else:
-                if (dst != '82:23:e0:b9:6c:69' and src == 'b6:74:07:a7:21:cd'): 
+                if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != 'b6:74:07:a7:21:cd' and src == 'e6:16:63:a4:83:f1'): 
                     self.add_flow(dp, match, actions)
 
         data = None
@@ -125,7 +131,7 @@ class SimpleSwitch(app_manager.RyuApp):
         out = ofp_parser.OFPPacketOut(
             datapath=dp, buffer_id=msg.buffer_id, in_port=in_port,
             actions=actions, data = data)
-        if (dst != '82:23:e0:b9:6c:69'):    
+        if (dst != 'e6:16:63:a4:83:f1'):    
             dp.send_msg(out)
 
 class SimpleSwitchController(ControllerBase):

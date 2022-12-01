@@ -27,6 +27,17 @@ class SimpleSwitch(app_manager.RyuApp):
 
         # learn mac addresses on each port of each switch
         self.mac_to_port = {}
+        self.segmentos = {}
+        self.visitantes = []
+        self.recepcao = []
+        self.vendas = []
+        print("Empty Segmentos: ")
+        print(self.segmentos)
+
+        self.segmentos["visitantes"] = self.visitantes
+        self.segmentos["recepcao"] = self.recepcao
+        self.segmentos["vendas"] = self.vendas
+        
 
     def add_flow(self, datapath, match, actions, priority=1000, buffer_id=None):
         ofproto = datapath.ofproto
@@ -115,6 +126,34 @@ class SimpleSwitch(app_manager.RyuApp):
             # flow_mod & packet_out
             print('Origem  ' + src)
             print('Destino  ' + dst )
+
+
+            # para adicionar mais hosts a um segmento
+            # self.visitantes.append(src)
+            self.segmentos["visitantes"] = self.visitantes
+            print("Visitantes: ")
+            print(self.visitantes)
+
+            # achando macs de um segmento
+            visitantes = []
+            keys = self.segmentos.keys()
+            #for key in keys:
+             #   if key == 'visitante':
+             #       visitantes = 
+            
+            self.visitantes.append(src)
+            self.segmentos["visitantes"] = self.visitantes
+            
+
+            if src not in self.segmentos["visitantes"]:
+                self.visitantes.append(src)
+
+            print("Visitantes: ")
+            print(self.visitantes)
+            print("Visitantes cadastrados nos segmentos: ")
+            print(self.segmentos["visitantes"] )
+
+            
             
             if msg.buffer_id != ofp.OFP_NO_BUFFER:
                 if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != '4a:97:51:e6:23:96' and src == 'e6:16:63:a4:83:f1'): 

@@ -143,6 +143,9 @@ class SimpleSwitch(app_manager.RyuApp):
         if (dst != 'e6:16:63:a4:83:f1'):    
             dp.send_msg(out)
 
+class Cadastro:
+    name: str
+
 class SimpleSwitchController(ControllerBase):
 
     def __init__(self, req, link, data, **config):
@@ -160,38 +163,56 @@ class SimpleSwitchController(ControllerBase):
         body = json.dumps(mac_table)
         return Response(content_type='application/json', body=body)
 
-    # lista todos os segmentos
-    @route(myapp_name, '/nac/segmentos', methods=['GET'])
-    def list_segmentos(self, req, **kwargs):
-        body = json.dumps(self.simple_switch_app.segmentos)
-        return Response(content_type='application/json', body=body)
+    
+    @route(myapp_name, '/nac/segmentos', methods=['GET', 'POST'])
+    def list_segmentos(self, req):
+        # lista todos os segmentos
+        if req.method == 'GET':
+            print("Visitantes ", self.simple_switch_app.segmentos["visitantes"])
+            print("Vendas ", self.simple_switch_app.segmentos["vendas"])
+            body = json.dumps(self.simple_switch_app.segmentos)
+            return Response(content_type='application/json', body=body)
+        if req.method == 'POST':
+            body = json.dumps(req.body)
+            return Response(content_type='application/json', body=body)
 
-    # lista todos os hosts de um segmento
-    @route(myapp_name, '/nac/segmentos/{segmento}', methods=['GET'])
+    # lista ou apaga todos os hosts de um segmento
+    @route(myapp_name, '/nac/segmentos/{segmento}', methods=['GET','DELETE'])
     def return_segmento(self, req, **kwargs):
-        print("Argumento ", kwargs.get('segmento'))
-        body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
-        return Response(content_type='application/json', body=body)
+        if req.method == 'GET':
+            print("Segmento ", kwargs.get('segmento'))
+            secao = kwargs.get('segmento')
+            body = json.dumps(self.simple_switch_app.segmentos[secao])
+            return Response(content_type='application/json', body=body)
+        if req.method == 'DELETE':
+            print("Segmento ", kwargs.get('segmento'))
+            self.simple_switch_app.segmentos[kwargs.get('segmento')] = []
+            body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
+            return Response(content_type='application/json', body=body)
 
-    # adiciona um host a um segmento
-    # lembrar de mudar o verbo http para post
-    @route(myapp_name, '/nac/segmentos/add/{segmento}/{mac}', methods=['GET'])
-    def return_segmento(self, req, **kwargs):
-        print("Segmento ", kwargs.get('segmento'))
-        print("Mac ", kwargs.get('mac'))
-        hosts = self.simple_switch_app.segmentos[kwargs.get('segmento')]
-        hosts.append(kwargs.get('mac'))
-        self.simple_switch_app.segmentos[kwargs.get('segmento')] = hosts
-        body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
-        return Response(content_type='application/json', body=body)
+    
+    @route(myapp_name, '/nac/segmentos/{segmento}/{mac}', methods=['POST', 'DELETE'])
+    def return_segmento_mac(self, req, **kwargs):
+        # adiciona um host a um segmento caso ele ja nao esteja - PROVISORIO
+        if req.method == 'POST':
+            print("Segmento ", kwargs.get('segmento'))
+            print("Mac ", kwargs.get('mac'))
+            endereco = kwargs.get('mac')
+            hosts = self.simple_switch_app.segmentos[kwargs.get('segmento')]
+            if endereco not in hosts:
+                hosts.append(kwargs.get('mac'))
+            self.simple_switch_app.segmentos[kwargs.get('segmento')] = hosts
+            body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
+            return Response(content_type='application/json', body=body)
+        
+        # remove um host de um segmento
+        if req.method == 'DELETE':
+            print("Segmento ", kwargs.get('segmento'))
+            print("Mac ", kwargs.get('mac'))
+            hosts = self.simple_switch_app.segmentos[kwargs.get('segmento')]
+            hosts.remove(kwargs.get('mac'))
+            self.simple_switch_app.segmentos[kwargs.get('segmento')] = hosts
+            body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
+            return Response(content_type='application/json', body=body)
 
-    @route(myapp_name, '/nac/segmentos/delete/{segmento}/{mac}', methods=['DELETE'])
-    def return_segmento(self, req, **kwargs):
-        print("Segmento ", kwargs.get('segmento'))
-        print("Mac ", kwargs.get('mac'))
-        hosts = self.simple_switch_app.segmentos[kwargs.get('segmento')]
-        hosts.remove(kwargs.get('mac'))
-        self.simple_switch_app.segmentos[kwargs.get('segmento')] = hosts
-        body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
-        return Response(content_type='application/json', body=body)
 

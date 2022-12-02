@@ -116,44 +116,14 @@ class SimpleSwitch(app_manager.RyuApp):
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=1))
             elif dpid == 1 and out_port == 2:
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=2))
+            elif dpid == 1 and out_port == 3:
+                actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=3))    
             elif dpid == 2 and out_port == 1:
-                actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=3))
-            elif dpid == 2 and out_port == 2:
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=4))
+            elif dpid == 2 and out_port == 2:
+                actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=5))
 
             match = ofp_parser.OFPMatch(in_port=in_port, eth_dst=dst)
-            # verify if we have a valid buffer_id, if yes avoid to send both
-            # flow_mod & packet_out
-            print('Origem  ' + src)
-            print('Destino  ' + dst )
-
-
-            # para adicionar mais hosts a um segmento
-            # self.visitantes.append(src)
-            self.segmentos["visitantes"] = self.visitantes
-            print("Visitantes: ")
-            print(self.visitantes)
-
-            # achando macs de um segmento
-            visitantes = []
-            keys = self.segmentos.keys()
-            #for key in keys:
-             #   if key == 'visitante':
-             #       visitantes = 
-            
-            self.visitantes.append(src)
-            self.segmentos["visitantes"] = self.visitantes
-            
-
-            if src not in self.segmentos["visitantes"]:
-                self.visitantes.append(src)
-
-            print("Visitantes: ")
-            print(self.visitantes)
-            print("Visitantes cadastrados nos segmentos: ")
-            print(self.segmentos["visitantes"] )
-
-            
             
             if msg.buffer_id != ofp.OFP_NO_BUFFER:
                 if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != '4a:97:51:e6:23:96' and src == 'e6:16:63:a4:83:f1'): 
@@ -189,3 +159,39 @@ class SimpleSwitchController(ControllerBase):
         mac_table = self.simple_switch_app.mac_to_port.get(dpid, {})
         body = json.dumps(mac_table)
         return Response(content_type='application/json', body=body)
+
+    # lista todos os segmentos
+    @route(myapp_name, '/nac/segmentos', methods=['GET'])
+    def list_segmentos(self, req, **kwargs):
+        body = json.dumps(self.simple_switch_app.segmentos)
+        return Response(content_type='application/json', body=body)
+
+    # lista todos os hosts de um segmento
+    @route(myapp_name, '/nac/segmentos/{segmento}', methods=['GET'])
+    def return_segmento(self, req, **kwargs):
+        print("Argumento ", kwargs.get('segmento'))
+        body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
+        return Response(content_type='application/json', body=body)
+
+    # adiciona um host a um segmento
+    # lembrar de mudar o verbo http para post
+    @route(myapp_name, '/nac/segmentos/add/{segmento}/{mac}', methods=['GET'])
+    def return_segmento(self, req, **kwargs):
+        print("Segmento ", kwargs.get('segmento'))
+        print("Mac ", kwargs.get('mac'))
+        hosts = self.simple_switch_app.segmentos[kwargs.get('segmento')]
+        hosts.append(kwargs.get('mac'))
+        self.simple_switch_app.segmentos[kwargs.get('segmento')] = hosts
+        body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
+        return Response(content_type='application/json', body=body)
+
+    @route(myapp_name, '/nac/segmentos/delete/{segmento}/{mac}', methods=['DELETE'])
+    def return_segmento(self, req, **kwargs):
+        print("Segmento ", kwargs.get('segmento'))
+        print("Mac ", kwargs.get('mac'))
+        hosts = self.simple_switch_app.segmentos[kwargs.get('segmento')]
+        hosts.remove(kwargs.get('mac'))
+        self.simple_switch_app.segmentos[kwargs.get('segmento')] = hosts
+        body = json.dumps(self.simple_switch_app.segmentos[kwargs.get('segmento')])
+        return Response(content_type='application/json', body=body)
+

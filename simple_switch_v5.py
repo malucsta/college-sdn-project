@@ -165,7 +165,7 @@ class SimpleSwitchController(ControllerBase):
 
     
     @route(myapp_name, '/nac/segmentos', methods=['GET', 'POST'])
-    def list_segmentos(self, req):
+    def list_segmentos(self, req, **kwargs):
         # lista todos os segmentos
         if req.method == 'GET':
             print("Visitantes ", self.simple_switch_app.segmentos["visitantes"])
@@ -173,13 +173,42 @@ class SimpleSwitchController(ControllerBase):
             body = json.dumps(self.simple_switch_app.segmentos)
             return Response(content_type='application/json', body=body)
         if req.method == 'POST':
-            body = json.dumps(req.body)
+            # printa toda a requisicao
+            print(str(req))
+            # encontra a primeira ocorrencia das chaves na requisicao
+            print(str(req).find("{"))
+            # retira so o objeto da req
+            print(str(req)[str(req).find("{"):len(str(req))])
+            
+            # serializa o objeto
+            print("Serializando: ")
+            objectHosts = json.loads(str(req)[str(req).find("{"):len(str(req))])
+            print(objectHosts)
+            # extraindo as keys do objeto
+            keys = objectHosts.keys()
+            print("Keys: ", keys)
+
+            # TODO verificar se o endereco ja nao existe. se sim, nao adicionar de novo
+            # TODO verificar se o segmento em questao existe. se nao, criar ele
+            for key in objectHosts.keys():
+                print("Percorrendo o loop para a key: ", key)
+                lista = self.simple_switch_app.segmentos[key]
+                for endereco in objectHosts[key]:
+                    lista.append(endereco)
+                self.simple_switch_app.segmentos[key] = lista
+                print(self.simple_switch_app.segmentos[key])
+
+            #extraindo os valores do objeto
+            values = objectHosts["visitantes"]
+            print("values:", values)
+            body = json.dumps(kwargs)
             return Response(content_type='application/json', body=body)
 
     # lista ou apaga todos os hosts de um segmento
     @route(myapp_name, '/nac/segmentos/{segmento}', methods=['GET','DELETE'])
     def return_segmento(self, req, **kwargs):
         if req.method == 'GET':
+            print(kwargs)
             print("Segmento ", kwargs.get('segmento'))
             secao = kwargs.get('segmento')
             body = json.dumps(self.simple_switch_app.segmentos[secao])

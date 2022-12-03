@@ -188,15 +188,19 @@ class SimpleSwitchController(ControllerBase):
             keys = objectHosts.keys()
             print("Keys: ", keys)
 
-            # TODO verificar se o endereco ja nao existe. se sim, nao adicionar de novo
-            # TODO verificar se o segmento em questao existe. se nao, criar ele
+            
             for key in objectHosts.keys():
                 print("Percorrendo o loop para a key: ", key)
+                print("Keys dos segmentos: ", self.simple_switch_app.segmentos.keys())
+                if(key not in self.simple_switch_app.segmentos.keys()):
+                    self.simple_switch_app.segmentos[key] = []
                 lista = self.simple_switch_app.segmentos[key]
                 for endereco in objectHosts[key]:
-                    lista.append(endereco)
+                    if endereco not in lista:
+                        lista.append(endereco)
                 self.simple_switch_app.segmentos[key] = lista
                 print(self.simple_switch_app.segmentos[key])
+
 
             #extraindo os valores do objeto
             values = objectHosts["visitantes"]

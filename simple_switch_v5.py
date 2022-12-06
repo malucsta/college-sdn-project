@@ -127,12 +127,18 @@ class SimpleSwitch(app_manager.RyuApp):
 
             match = ofp_parser.OFPMatch(in_port=in_port, eth_dst=dst)
             
+            # TODO percorrer a lista de proibicoes ate achar o mac que seja igual ao src
+            # se o dst nao estiver contido na lista de proibicoes, deixa adicionar o fluxo
             if msg.buffer_id != ofp.OFP_NO_BUFFER:
-                if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != '4a:97:51:e6:23:96' and src == 'e6:16:63:a4:83:f1'): 
+                macsProibidos = self.simple_switch_app.proibicoes[src]
+                if dst not in macsProibidos:
+                    #if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != '4a:97:51:e6:23:96' and src == 'e6:16:63:a4:83:f1'): 
                     self.add_flow(dp, match, actions, buffer_id=msg.buffer_id)
                 return
             else:
-                if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != 'b6:74:07:a7:21:cd' and src == 'e6:16:63:a4:83:f1'): 
+                macsProibidos = self.simple_switch_app.proibicoes[src]
+                if dst not in macsProibidos:
+                    # if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != 'b6:74:07:a7:21:cd' and src == 'e6:16:63:a4:83:f1'): 
                     self.add_flow(dp, match, actions)
 
         data = None
@@ -142,7 +148,10 @@ class SimpleSwitch(app_manager.RyuApp):
         out = ofp_parser.OFPPacketOut(
             datapath=dp, buffer_id=msg.buffer_id, in_port=in_port,
             actions=actions, data = data)
-        if (dst != 'e6:16:63:a4:83:f1'):    
+
+        macsProibidos = self.simple_switch_app.proibicoes[src]
+        if dst not in macsProibidos:    
+        # if (dst != 'e6:16:63:a4:83:f1'):    
             dp.send_msg(out)
 
 class Cadastro:
@@ -177,15 +186,13 @@ class SimpleSwitchController(ControllerBase):
         if req.method == 'POST':
             # printa toda a requisicao
             print(str(req))
-            # encontra a primeira ocorrencia das chaves na requisicao
-            print(str(req).find("{"))
             # retira so o objeto da req
-            print(str(req)[str(req).find("{"):len(str(req))])
+            print("Objeto da requisicao ", str(req)[str(req).find("{"):len(str(req))])
             
             # serializa o objeto
             print("Serializando: ")
             objectHosts = json.loads(str(req)[str(req).find("{"):len(str(req))])
-            print(objectHosts)
+            print("Enderecos", objectHosts)
             # extraindo as keys do objeto
             keys = objectHosts.keys()
             print("Keys: ", keys)
@@ -194,13 +201,22 @@ class SimpleSwitchController(ControllerBase):
             for key in objectHosts.keys():
                 print("Percorrendo o loop para a key: ", key)
                 print("Keys dos segmentos: ", self.simple_switch_app.segmentos.keys())
+                
+                #verifica se o segmento existe. se nao, cria
                 if(key not in self.simple_switch_app.segmentos.keys()):
                     self.simple_switch_app.segmentos[key] = []
                 lista = self.simple_switch_app.segmentos[key]
+                
+                probicoesPorSegmento = self.simple_switch_app.proibicoesPorSegmento
+                print("Proibicao por segmentos ", probicoesPorSegmento)
+
                 for endereco in objectHosts[key]:
+                    # se o endereco nao estiver na lista do segmento, adiciona
                     if endereco not in lista:
                         lista.append(endereco)
+                        # cria uma lista vazia pra lista de probicoes daquele mac
                         self.simple_switch_app.proibicoes[endereco] = []
+
                 self.simple_switch_app.segmentos[key] = lista
                 print(self.simple_switch_app.segmentos[key])
 
@@ -254,6 +270,18 @@ class SimpleSwitchController(ControllerBase):
                 if objectHosts[key] == "bloquear":
                     listaA = self.simple_switch_app.segmentos[segmento_a]
                     listaB = self.simple_switch_app.segmentos[segmento_b]
+
+                    # registrando as proibicoes por segmento
+                    if(segmento_a not in self.simple_switch_app.proibicoesPorSegmento.keys()):
+                        self.simple_switch_app.proibicoesPorSegmento[segmento_a] = []
+                    proibicoesSegmentoA = self.simple_switch_app.proibicoesPorSegmento[segmento_a]
+                    proibicoesSegmentoA.append(segmento_b)
+
+                    if(segmento_b not in self.simple_switch_app.proibicoesPorSegmento.keys()):
+                        self.simple_switch_app.proibicoesPorSegmento[segmento_b] = []
+                    proibicoesSegmentoB = self.simple_switch_app.proibicoesPorSegmento[segmento_b]
+                    proibicoesSegmentoB.append(segmento_a)
+
                     
                     for mac in listaA: 
                         listaProibicoes = self.simple_switch_app.proibicoes[mac]
@@ -273,6 +301,13 @@ class SimpleSwitchController(ControllerBase):
                 if objectHosts[key] == "permitir":
                     listaA = self.simple_switch_app.segmentos[segmento_a]
                     listaB = self.simple_switch_app.segmentos[segmento_b]
+
+                    # removendo as proibicoes por segmento
+                    proibicoesSegmentoA = self.simple_switch_app.proibicoesPorSegmento[segmento_a]
+                    proibicoesSegmentoA.remove(segmento_b)
+
+                    proibicoesSegmentoB = self.simple_switch_app.proibicoesPorSegmento[segmento_b]
+                    proibicoesSegmentoB.remove(segmento_a)
                     
                     for mac in listaA: 
                         listaProibicoes = self.simple_switch_app.proibicoes[mac]
@@ -291,6 +326,60 @@ class SimpleSwitchController(ControllerBase):
             body = json.dumps(self.simple_switch_app.proibicoes)
             return Response(content_type='application/json', body=body)
 
+    # adicionando regras por hosts
+    # sabemos que a rota nao esta identica, foi apenas simplificacao
+    @route(myapp_name, '/nac/controle/hosts', methods=['POST'])
+    def post_proibicoes(self, req, **kwargs):
+        
+        # serializa o objeto
+            print("Serializando: ")
+            objectHosts = json.loads(str(req)[str(req).find("{"):len(str(req))])
+            print(objectHosts)
+            
+            # extraindo as keys do objeto
+            keys = objectHosts.keys()
+            print("Keys: ", keys)
+
+            host_a = ""
+            host_b = ""
+
+            #extraindo os valores do objeto
+            for key in objectHosts.keys():
+                if key == "host_a":
+                    host_a = objectHosts[key]
+
+                if key == "host_b":
+                    host_b = objectHosts[key]
+                
+                if objectHosts[key] == "bloquear":
+                    
+                    if(host_a not in self.simple_switch_app.proibicoes.keys()):
+                        self.simple_switch_app.proibicoes[host_a] = []
+
+                    if(host_b not in self.simple_switch_app.proibicoes.keys()):
+                        self.simple_switch_app.proibicoes[host_b] = []
+                    
+                    listaProibicoesA = self.simple_switch_app.proibicoes[host_a]
+                    listaProibicoesB = self.simple_switch_app.proibicoes[host_b]
+
+                    listaProibicoesA.append(host_b)
+                    listaProibicoesB.append(host_a)
+                    
+                    self.simple_switch_app.proibicoes[host_a] = listaProibicoesA
+                    self.simple_switch_app.proibicoes[host_b] = listaProibicoesB
+
+                if objectHosts[key] == "permitir":
+                    listaProibicoesA = self.simple_switch_app.proibicoes[host_a]
+                    listaProibicoesB = self.simple_switch_app.proibicoes[host_b]
+
+                    listaProibicoesA.remove(host_b)
+                    listaProibicoesB.remove(host_a)
+                    
+                    self.simple_switch_app.proibicoes[host_a] = listaProibicoesA
+                    self.simple_switch_app.proibicoes[host_b] = listaProibicoesB
+
+            body = json.dumps(self.simple_switch_app.proibicoes)
+            return Response(content_type='application/json', body=body)
     
     @route(myapp_name, '/nac/segmentos/{segmento}/{mac}', methods=['POST', 'DELETE'])
     def return_segmento_mac(self, req, **kwargs):

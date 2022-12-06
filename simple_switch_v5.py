@@ -421,11 +421,11 @@ class SimpleSwitchController(ControllerBase):
                 
                 if objectHosts[key] == "bloquear":
                     
-                    if(host_a not in self.simple_switch_app.proibicoes.keys()):
-                        self.simple_switch_app.proibicoes[host_a] = []
+                    if(host not in self.simple_switch_app.proibicoes.keys()):
+                        self.simple_switch_app.proibicoes[host] = []
                     
-                    listaProibicoesA = self.simple_switch_app.proibicoes[host_a]
-                    listaA = self.simple_switch_app.segmentos[segmento_a]
+                    listaProibicoesA = self.simple_switch_app.proibicoes[host]
+                    listaA = self.simple_switch_app.segmentos[segmento]
 
                     for mac in listaA: 
                         if mac not in listaProibicoesA:
@@ -437,15 +437,15 @@ class SimpleSwitchController(ControllerBase):
                         
                         self.simple_switch_app.proibicoes[mac] = listaProibicoes
                     
-                    self.simple_switch_app.proibicoes[host_a] = listaProibicoesA
+                    self.simple_switch_app.proibicoes[host] = listaProibicoesA
 
                 if objectHosts[key] == "permitir":
                     
-                    if(host_a not in self.simple_switch_app.proibicoes.keys()):
-                        self.simple_switch_app.proibicoes[host_a] = []
+                    if(host not in self.simple_switch_app.proibicoes.keys()):
+                        self.simple_switch_app.proibicoes[host] = []
                     
-                    listaProibicoesA = self.simple_switch_app.proibicoes[host_a]
-                    listaA = self.simple_switch_app.segmentos[segmento_a]
+                    listaProibicoesA = self.simple_switch_app.proibicoes[host]
+                    listaA = self.simple_switch_app.segmentos[segmento]
 
                     for mac in listaA: 
                         if mac in listaProibicoesA:
@@ -457,17 +457,7 @@ class SimpleSwitchController(ControllerBase):
                         
                         self.simple_switch_app.proibicoes[mac] = listaProibicoes
                     
-                    self.simple_switch_app.proibicoes[host_a] = listaProibicoesA
-
-                if objectHosts[key] == "permitir":
-                    listaProibicoesA = self.simple_switch_app.proibicoes[host_a]
-                    listaProibicoesB = self.simple_switch_app.proibicoes[host_b]
-
-                    listaProibicoesA.remove(host_b)
-                    listaProibicoesB.remove(host_a)
-                    
-                    self.simple_switch_app.proibicoes[host_a] = listaProibicoesA
-                    self.simple_switch_app.proibicoes[host_b] = listaProibicoesB
+                    self.simple_switch_app.proibicoes[host] = listaProibicoesA
 
             body = json.dumps(self.simple_switch_app.proibicoes)
             return Response(content_type='application/json', body=body)

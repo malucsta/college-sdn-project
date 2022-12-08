@@ -80,7 +80,7 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "0.0.0.0:8080/nac/segmentos/vendas/11:22:33:44:55:66",
+					"raw": "0.0.0.0:8080/nac/segmentos/visitantes/11:22:33:44:55:66",
 					"host": [
 						"0",
 						"0",
@@ -91,7 +91,7 @@
 					"path": [
 						"nac",
 						"segmentos",
-						"vendas",
+						"visitantes",
 						"11:22:33:44:55:66"
 					]
 				}

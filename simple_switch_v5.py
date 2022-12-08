@@ -108,7 +108,6 @@ class SimpleSwitch(app_manager.RyuApp):
 	
         print('Out port --', out_port)
         print('Dpid --', dpid)
-        #print('Mapeamento --', self.mac_to_port[dpid][dst])
         
         actions = [ofp_parser.OFPActionOutput(out_port)]
 
@@ -120,25 +119,29 @@ class SimpleSwitch(app_manager.RyuApp):
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=2))
             elif dpid == 1 and out_port == 3:
                 actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=3))    
+            
             elif dpid == 2 and out_port == 1:
-                actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=4))
-            elif dpid == 2 and out_port == 2:
-                actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=5))
+                actions.insert(0, ofp_parser.OFPActionSetQueue(queue_id=4))  
 
             match = ofp_parser.OFPMatch(in_port=in_port, eth_dst=dst)
             
-            # TODO percorrer a lista de proibicoes ate achar o mac que seja igual ao src
-            # se o dst nao estiver contido na lista de proibicoes, deixa adicionar o fluxo
+
             if msg.buffer_id != ofp.OFP_NO_BUFFER:
-                macsProibidos = self.simple_switch_app.proibicoes[src]
+                if(src not in self.proibicoes.keys()):
+                    self.proibicoes[src] = []
+                macsProibidos = self.proibicoes[src]
+                print('Pro host --', src)
+                print('Macs proibidos --', macsProibidos)
                 if dst not in macsProibidos:
-                    #if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != '4a:97:51:e6:23:96' and src == 'e6:16:63:a4:83:f1'): 
                     self.add_flow(dp, match, actions, buffer_id=msg.buffer_id)
                 return
             else:
-                macsProibidos = self.simple_switch_app.proibicoes[src]
+                if(src not in self.proibicoes.keys()):
+                    self.proibicoes[src] = []
+                macsProibidos = self.proibicoes[src]
+                print('Pro host --', src)
+                print('Macs proibidos --', macsProibidos)
                 if dst not in macsProibidos:
-                    # if (dst != 'e6:16:63:a4:83:f1' and src == '4a:97:51:e6:23:96') or (dst != 'b6:74:07:a7:21:cd' and src == 'e6:16:63:a4:83:f1'): 
                     self.add_flow(dp, match, actions)
 
         data = None
@@ -149,9 +152,14 @@ class SimpleSwitch(app_manager.RyuApp):
             datapath=dp, buffer_id=msg.buffer_id, in_port=in_port,
             actions=actions, data = data)
 
-        macsProibidos = self.simple_switch_app.proibicoes[src]
+        if(src not in self.proibicoes.keys()):
+                    self.proibicoes[src] = []
+    
+        macsProibidos = self.proibicoes[src]
+        print('Pro host --', src)
+        print('Destino --', dst)
+        print('Macs proibidos --', macsProibidos)
         if dst not in macsProibidos:    
-        # if (dst != 'e6:16:63:a4:83:f1'):    
             dp.send_msg(out)
 
 class Cadastro:
@@ -197,7 +205,7 @@ class SimpleSwitchController(ControllerBase):
             keys = objectHosts.keys()
             print("Keys: ", keys)
 
-            # TODO depois de adicionar, verificar se existem regras por segmento e adiciona-las ao host
+
             for key in objectHosts.keys():
                 print("Percorrendo o loop para a key: ", key)
                 print("Keys dos segmentos: ", self.simple_switch_app.segmentos.keys())
